@@ -1,3 +1,5 @@
+//! Command execution runner for managing operations across multiple repositories
+
 use crate::config::Repository;
 use crate::git::Logger;
 use anyhow::Result;
@@ -10,15 +12,14 @@ use std::process::{Command, Stdio};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+#[derive(Default)]
 pub struct CommandRunner {
     logger: Logger,
 }
 
 impl CommandRunner {
     pub fn new() -> Self {
-        Self {
-            logger: Logger::new(),
-        }
+        Self::default()
     }
 
     pub async fn run_command(

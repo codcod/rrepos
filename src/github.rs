@@ -1,9 +1,16 @@
+//! GitHub API integration for pull request management
+
 use crate::config::Repository;
 use crate::git;
 use anyhow::Result;
 use colored::*;
 use serde_json::json;
 use uuid::Uuid;
+
+// Constants for maintainability
+const DEFAULT_BRANCH_PREFIX: &str = "automated-changes";
+const UUID_LENGTH: usize = 6;
+const DEFAULT_BASE_BRANCH: &str = "main";
 
 #[derive(Debug)]
 pub struct PrOptions {
@@ -33,8 +40,9 @@ pub async fn create_pull_request(repo: &Repository, options: &PrOptions) -> Resu
     // Generate branch name if not provided
     let branch_name = options.branch_name.clone().unwrap_or_else(|| {
         format!(
-            "automated-changes-{}",
-            &Uuid::new_v4().simple().to_string()[..6]
+            "{}-{}",
+            DEFAULT_BRANCH_PREFIX,
+            &Uuid::new_v4().simple().to_string()[..UUID_LENGTH]
         )
     });
 
@@ -69,7 +77,7 @@ async fn create_github_pr(repo: &Repository, branch_name: &str, options: &PrOpti
     // Determine base branch
     let base_branch = options.base_branch.clone().unwrap_or_else(|| {
         // Try to detect default branch - for simplicity, use "main"
-        "main".to_string()
+        DEFAULT_BASE_BRANCH.to_string()
     });
 
     let client = reqwest::Client::new();

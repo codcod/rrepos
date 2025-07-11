@@ -1,3 +1,5 @@
+//! Utility functions for repository discovery and file system operations
+
 use crate::config::Repository;
 use anyhow::Result;
 use std::path::Path;

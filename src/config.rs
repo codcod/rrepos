@@ -1,3 +1,5 @@
+//! Configuration management for repositories and application settings
+
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -23,6 +25,12 @@ pub struct Config {
 impl Repository {
     pub fn has_tag(&self, tag: &str) -> bool {
         self.tags.iter().any(|t| t == tag)
+    }
+
+    /// Check if the repository URL has a valid format
+    #[allow(dead_code)]
+    pub fn is_url_valid(&self) -> bool {
+        self.url.starts_with("git@") || self.url.starts_with("https://")
     }
 
     #[allow(dead_code)]
@@ -157,5 +165,38 @@ mod tests {
         let target_dir = repo.get_target_dir();
         let expected = current_dir.join("journey").to_string_lossy().to_string();
         assert_eq!(target_dir, expected);
+    }
+
+    #[test]
+    fn test_url_validation() {
+        let repo_ssh = Repository {
+            name: "test".to_string(),
+            url: "git@github.com:owner/repo.git".to_string(),
+            tags: vec![],
+            path: None,
+            branch: None,
+            config_dir: None,
+        };
+        assert!(repo_ssh.is_url_valid());
+
+        let repo_https = Repository {
+            name: "test".to_string(),
+            url: "https://github.com/owner/repo.git".to_string(),
+            tags: vec![],
+            path: None,
+            branch: None,
+            config_dir: None,
+        };
+        assert!(repo_https.is_url_valid());
+
+        let repo_invalid = Repository {
+            name: "test".to_string(),
+            url: "invalid-url".to_string(),
+            tags: vec![],
+            path: None,
+            branch: None,
+            config_dir: None,
+        };
+        assert!(!repo_invalid.is_url_valid());
     }
 }

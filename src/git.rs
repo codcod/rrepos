@@ -1,16 +1,15 @@
+//! Git operations using system git commands for maximum compatibility
+
 use crate::config::Repository;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use colored::*;
 use std::path::Path;
 use std::process::Command;
 
+#[derive(Default)]
 pub struct Logger;
 
 impl Logger {
-    pub fn new() -> Self {
-        Self
-    }
-
     pub fn info(&self, repo: &Repository, msg: &str) {
         println!("{} | {}", repo.name.cyan().bold(), msg);
     }
@@ -30,7 +29,7 @@ impl Logger {
 }
 
 pub fn clone_repository(repo: &Repository) -> Result<()> {
-    let logger = Logger::new();
+    let logger = Logger;
     let target_dir = repo.get_target_dir();
 
     // Check if directory already exists
@@ -59,7 +58,10 @@ pub fn clone_repository(repo: &Repository) -> Result<()> {
     args.push(&repo.url);
     args.push(&target_dir);
 
-    let output = Command::new("git").args(&args).output()?;
+    let output = Command::new("git")
+        .args(&args)
+        .output()
+        .context("Failed to execute git clone command")?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -74,7 +76,7 @@ pub fn remove_repository(repo: &Repository) -> Result<()> {
     let target_dir = repo.get_target_dir();
 
     if Path::new(&target_dir).exists() {
-        std::fs::remove_dir_all(&target_dir)?;
+        std::fs::remove_dir_all(&target_dir).context("Failed to remove repository directory")?;
         Ok(())
     } else {
         anyhow::bail!("Repository directory does not exist: {}", target_dir);
@@ -87,7 +89,8 @@ pub fn has_changes(repo_path: &str) -> Result<bool> {
         .arg("status")
         .arg("--porcelain")
         .current_dir(repo_path)
-        .output()?;
+        .output()
+        .context("Failed to execute git status command")?;
 
     if !output.status.success() {
         anyhow::bail!(
@@ -107,7 +110,8 @@ pub fn create_and_checkout_branch(repo_path: &str, branch_name: &str) -> Result<
         .arg("-b")
         .arg(branch_name)
         .current_dir(repo_path)
-        .output()?;
+        .output()
+        .context("Failed to execute git checkout command")?;
 
     if !output.status.success() {
         anyhow::bail!(
@@ -126,7 +130,8 @@ pub fn add_all_changes(repo_path: &str) -> Result<()> {
         .arg("add")
         .arg(".")
         .current_dir(repo_path)
-        .output()?;
+        .output()
+        .context("Failed to execute git add command")?;
 
     if !output.status.success() {
         anyhow::bail!(
@@ -145,7 +150,8 @@ pub fn commit_changes(repo_path: &str, message: &str) -> Result<()> {
         .arg("-m")
         .arg(message)
         .current_dir(repo_path)
-        .output()?;
+        .output()
+        .context("Failed to execute git commit command")?;
 
     if !output.status.success() {
         anyhow::bail!(
@@ -165,7 +171,8 @@ pub fn push_branch(repo_path: &str, branch_name: &str) -> Result<()> {
         .arg("origin")
         .arg(branch_name)
         .current_dir(repo_path)
-        .output()?;
+        .output()
+        .context("Failed to execute git push command")?;
 
     if !output.status.success() {
         anyhow::bail!(
