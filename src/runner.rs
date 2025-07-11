@@ -3,7 +3,7 @@ use crate::git::Logger;
 use anyhow::Result;
 use chrono::Utc;
 use colored::*;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::process::{Command, Stdio};
