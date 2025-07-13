@@ -12,6 +12,8 @@ pub struct CommandContext {
     pub tag: Option<String>,
     /// Whether to execute operations in parallel
     pub parallel: bool,
+    /// Optional list of specific repository names to operate on
+    pub repos: Option<Vec<String>>,
 }
 
 /// Trait that all commands must implement

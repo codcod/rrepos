@@ -12,12 +12,23 @@ pub struct RemoveCommand;
 #[async_trait]
 impl Command for RemoveCommand {
     async fn execute(&self, context: &CommandContext) -> Result<()> {
-        let repositories = context.config.filter_repositories_by_tag(context.tag.as_deref());
+        let repositories = context
+            .config
+            .filter_repositories(
+                context.tag.as_deref(), 
+                context.repos.as_deref()
+            );
 
         if repositories.is_empty() {
+            let filter_desc = match (&context.tag, &context.repos) {
+                (Some(tag), Some(repos)) => format!("tag '{tag}' and repositories {repos:?}"),
+                (Some(tag), None) => format!("tag '{tag}'"),
+                (None, Some(repos)) => format!("repositories {repos:?}"),
+                (None, None) => "no repositories found".to_string(),
+            };
             println!(
                 "{}",
-                format!("No repositories found with tag: {}", context.tag.as_deref().unwrap_or("")).yellow()
+                format!("No repositories found with {filter_desc}").yellow()
             );
             return Ok(());
         }

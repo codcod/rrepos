@@ -40,6 +40,19 @@ impl Config {
         Ok(())
     }
 
+    /// Filter repositories by specific names
+    pub fn filter_by_names(&self, names: &[String]) -> Vec<Repository> {
+        if names.is_empty() {
+            return self.repositories.clone();
+        }
+
+        self.repositories
+            .iter()
+            .filter(|repo| names.contains(&repo.name))
+            .cloned()
+            .collect()
+    }
+
     /// Filter repositories by tag
     pub fn filter_by_tag(&self, tag: Option<&str>) -> Vec<Repository> {
         match tag {
@@ -146,6 +159,30 @@ impl Config {
     pub fn filter_repositories_by_tag(&self, tag: Option<&str>) -> Vec<Repository> {
         self.filter_by_tag(tag)
     }
+
+    /// Filter repositories by context (combining tag and names filters)
+    pub fn filter_repositories(
+        &self,
+        tag: Option<&str>,
+        repos: Option<&[String]>,
+    ) -> Vec<Repository> {
+        match (tag, repos) {
+            // If specific repos are specified, filter by names first, then by tag if provided
+            (Some(tag), Some(repo_names)) => {
+                let by_names = self.filter_by_names(repo_names);
+                by_names
+                    .into_iter()
+                    .filter(|repo| repo.has_tag(tag))
+                    .collect()
+            }
+            // If only repos are specified, filter by names only
+            (None, Some(repo_names)) => self.filter_by_names(repo_names),
+            // If only tag is specified, filter by tag only
+            (Some(tag), None) => self.filter_by_tag(Some(tag)),
+            // If neither is specified, return all repositories
+            (None, None) => self.repositories.clone(),
+        }
+    }
 }
 
 impl Default for Config {
@@ -207,6 +244,52 @@ mod tests {
         let tags = config.get_all_tags();
 
         assert_eq!(tags, vec!["api", "backend", "frontend", "web"]);
+    }
+
+    #[test]
+    fn test_filter_by_names() {
+        let config = create_test_config();
+
+        let specific_repos = config.filter_by_names(&["repo1".to_string()]);
+        assert_eq!(specific_repos.len(), 1);
+        assert_eq!(specific_repos[0].name, "repo1");
+
+        let multiple_repos = config.filter_by_names(&["repo1".to_string(), "repo2".to_string()]);
+        assert_eq!(multiple_repos.len(), 2);
+
+        let no_match = config.filter_by_names(&["nonexistent".to_string()]);
+        assert_eq!(no_match.len(), 0);
+
+        let empty_filter = config.filter_by_names(&[]);
+        assert_eq!(empty_filter.len(), 2); // Should return all repos
+    }
+
+    #[test]
+    fn test_filter_repositories_combined() {
+        let config = create_test_config();
+
+        // Test with both tag and repo names
+        let filtered = config.filter_repositories(Some("frontend"), Some(&["repo1".to_string()]));
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "repo1");
+
+        // Test with tag and repo names that don't match
+        let filtered = config.filter_repositories(Some("backend"), Some(&["repo1".to_string()]));
+        assert_eq!(filtered.len(), 0); // repo1 doesn't have backend tag
+
+        // Test with only repo names
+        let filtered = config.filter_repositories(None, Some(&["repo1".to_string()]));
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "repo1");
+
+        // Test with only tag
+        let filtered = config.filter_repositories(Some("frontend"), None);
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].name, "repo1");
+
+        // Test with neither (should return all)
+        let filtered = config.filter_repositories(None, None);
+        assert_eq!(filtered.len(), 2);
     }
 
     #[test]

@@ -16,6 +16,9 @@ struct Cli {
 enum Commands {
     /// Clone repositories specified in config
     Clone {
+        /// Specific repository names to clone (if not provided, uses tag filter or all repos)
+        repos: Vec<String>,
+
         /// Configuration file path
         #[arg(short, long, default_value = "config.yaml")]
         config: String,
@@ -33,6 +36,9 @@ enum Commands {
     Run {
         /// Command to execute
         command: String,
+
+        /// Specific repository names to run command in (if not provided, uses tag filter or all repos)
+        repos: Vec<String>,
 
         /// Directory to store log files
         #[arg(short, long, default_value = "logs")]
@@ -53,6 +59,9 @@ enum Commands {
 
     /// Create pull requests for repositories with changes
     Pr {
+        /// Specific repository names to create PRs for (if not provided, uses tag filter or all repos)
+        repos: Vec<String>,
+
         /// Title for the pull request
         #[arg(long, default_value = "Automated changes")]
         title: String,
@@ -100,6 +109,9 @@ enum Commands {
 
     /// Remove cloned repositories
     Rm {
+        /// Specific repository names to remove (if not provided, uses tag filter or all repos)
+        repos: Vec<String>,
+
         /// Configuration file path
         #[arg(short, long, default_value = "config.yaml")]
         config: String,
@@ -132,6 +144,7 @@ async fn main() -> Result<()> {
     // Execute the appropriate command
     match cli.command {
         Commands::Clone {
+            repos,
             config,
             tag,
             parallel,
@@ -141,11 +154,13 @@ async fn main() -> Result<()> {
                 config,
                 tag,
                 parallel,
+                repos: if repos.is_empty() { None } else { Some(repos) },
             };
             CloneCommand.execute(&context).await?;
         }
         Commands::Run {
             command,
+            repos,
             logs,
             config,
             tag,
@@ -156,6 +171,7 @@ async fn main() -> Result<()> {
                 config,
                 tag,
                 parallel,
+                repos: if repos.is_empty() { None } else { Some(repos) },
             };
             RunCommand {
                 command,
@@ -165,6 +181,7 @@ async fn main() -> Result<()> {
             .await?;
         }
         Commands::Pr {
+            repos,
             title,
             body,
             branch,
@@ -182,6 +199,7 @@ async fn main() -> Result<()> {
                 config,
                 tag,
                 parallel,
+                repos: if repos.is_empty() { None } else { Some(repos) },
             };
 
             let token = token.or_else(|| env::var("GITHUB_TOKEN").ok())
@@ -201,6 +219,7 @@ async fn main() -> Result<()> {
             .await?;
         }
         Commands::Rm {
+            repos,
             config,
             tag,
             parallel,
@@ -210,6 +229,7 @@ async fn main() -> Result<()> {
                 config,
                 tag,
                 parallel,
+                repos: if repos.is_empty() { None } else { Some(repos) },
             };
             RemoveCommand.execute(&context).await?;
         }
@@ -219,6 +239,7 @@ async fn main() -> Result<()> {
                 config: Config::new(),
                 tag: None,
                 parallel: false,
+                repos: None,
             };
             InitCommand { output, overwrite }.execute(&context).await?;
         }
