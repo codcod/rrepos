@@ -1,4 +1,4 @@
-//! Configuration management for repositories and application settings
+//! Repository configuration and utilities
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -17,33 +17,54 @@ pub struct Repository {
     pub config_dir: Option<PathBuf>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
-    pub repositories: Vec<Repository>,
-}
-
 impl Repository {
+    /// Create a new repository configuration
+    pub fn new(name: String, url: String) -> Self {
+        Self {
+            name,
+            url,
+            tags: Vec::new(),
+            path: None,
+            branch: None,
+            config_dir: None,
+        }
+    }
+
+    /// Check if repository has a specific tag
     pub fn has_tag(&self, tag: &str) -> bool {
         self.tags.iter().any(|t| t == tag)
     }
 
-    /// Check if the repository URL has a valid format
-    #[allow(dead_code)]
-    pub fn is_url_valid(&self) -> bool {
-        self.url.starts_with("git@") || self.url.starts_with("https://")
+    /// Check if repository has any of the specified tags
+    pub fn has_any_tag(&self, tags: &[String]) -> bool {
+        tags.iter().any(|tag| self.has_tag(tag))
     }
 
-    #[allow(dead_code)]
+    /// Check if the repository URL has a valid format
+    pub fn is_url_valid(&self) -> bool {
+        self.url.starts_with("git@")
+            || self.url.starts_with("https://")
+            || self.url.starts_with("http://")
+    }
+
+    /// Validate repository configuration
     pub fn validate(&self) -> Result<()> {
         if self.name.is_empty() {
-            anyhow::bail!("Repository name is required");
+            return Err(anyhow::anyhow!("Repository name cannot be empty"));
         }
+
         if self.url.is_empty() {
-            anyhow::bail!("Repository URL is required");
+            return Err(anyhow::anyhow!("Repository URL cannot be empty"));
         }
+
+        if !self.is_url_valid() {
+            return Err(anyhow::anyhow!("Invalid repository URL: {}", self.url));
+        }
+
         Ok(())
     }
 
+    /// Get the target directory for cloning
     pub fn get_target_dir(&self) -> String {
         match &self.path {
             Some(path) => {
@@ -80,42 +101,27 @@ impl Repository {
             }
         }
     }
-}
 
-impl Config {
-    pub fn load_config(path: &str) -> Result<Config> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| anyhow::anyhow!("Failed to read config file: {}", e))?;
-
-        let mut config: Config = serde_yaml::from_str(&content)
-            .map_err(|e| anyhow::anyhow!("Failed to parse config file: {}", e))?;
-
-        // Set the config directory for each repository
-        let config_path = Path::new(path);
-        let config_dir = config_path.parent().map(|p| p.to_path_buf());
-
-        for repo in &mut config.repositories {
-            repo.config_dir = config_dir.clone();
-        }
-
-        Ok(config)
+    /// Set the configuration directory (used by config loader)
+    pub fn set_config_dir(&mut self, config_dir: Option<PathBuf>) {
+        self.config_dir = config_dir;
     }
 
-    pub fn filter_repositories_by_tag(&self, tag: Option<&str>) -> Vec<&Repository> {
-        match tag {
-            Some(tag) => self
-                .repositories
-                .iter()
-                .filter(|repo| repo.has_tag(tag))
-                .collect(),
-            None => self.repositories.iter().collect(),
+    /// Add a tag to the repository
+    pub fn add_tag(&mut self, tag: String) {
+        if !self.tags.contains(&tag) {
+            self.tags.push(tag);
         }
     }
 
-    pub fn save(&self, path: &str) -> Result<()> {
-        let yaml = serde_yaml::to_string(self)?;
-        std::fs::write(path, yaml)?;
-        Ok(())
+    /// Remove a tag from the repository
+    pub fn remove_tag(&mut self, tag: &str) {
+        self.tags.retain(|t| t != tag);
+    }
+
+    /// Check if the repository directory exists
+    pub fn exists(&self) -> bool {
+        Path::new(&self.get_target_dir()).exists()
     }
 }
 
@@ -169,34 +175,60 @@ mod tests {
 
     #[test]
     fn test_url_validation() {
-        let repo_ssh = Repository {
-            name: "test".to_string(),
-            url: "git@github.com:owner/repo.git".to_string(),
-            tags: vec![],
-            path: None,
-            branch: None,
-            config_dir: None,
-        };
+        let repo_ssh = Repository::new(
+            "test".to_string(),
+            "git@github.com:owner/repo.git".to_string(),
+        );
         assert!(repo_ssh.is_url_valid());
 
-        let repo_https = Repository {
-            name: "test".to_string(),
-            url: "https://github.com/owner/repo.git".to_string(),
-            tags: vec![],
-            path: None,
-            branch: None,
-            config_dir: None,
-        };
+        let repo_https = Repository::new(
+            "test".to_string(),
+            "https://github.com/owner/repo.git".to_string(),
+        );
         assert!(repo_https.is_url_valid());
 
-        let repo_invalid = Repository {
-            name: "test".to_string(),
-            url: "invalid-url".to_string(),
-            tags: vec![],
-            path: None,
-            branch: None,
-            config_dir: None,
-        };
+        let repo_invalid = Repository::new("test".to_string(), "invalid-url".to_string());
         assert!(!repo_invalid.is_url_valid());
+    }
+
+    #[test]
+    fn test_tag_operations() {
+        let mut repo = Repository::new(
+            "test".to_string(),
+            "git@github.com:owner/repo.git".to_string(),
+        );
+
+        assert!(!repo.has_tag("frontend"));
+
+        repo.add_tag("frontend".to_string());
+        assert!(repo.has_tag("frontend"));
+
+        repo.add_tag("backend".to_string());
+        assert!(repo.has_any_tag(&["frontend".to_string()]));
+        assert!(repo.has_any_tag(&["backend".to_string()]));
+        assert!(!repo.has_any_tag(&["mobile".to_string()]));
+
+        repo.remove_tag("frontend");
+        assert!(!repo.has_tag("frontend"));
+        assert!(repo.has_tag("backend"));
+    }
+
+    #[test]
+    fn test_validation() {
+        let valid_repo = Repository::new(
+            "test".to_string(),
+            "git@github.com:owner/repo.git".to_string(),
+        );
+        assert!(valid_repo.validate().is_ok());
+
+        let empty_name =
+            Repository::new("".to_string(), "git@github.com:owner/repo.git".to_string());
+        assert!(empty_name.validate().is_err());
+
+        let empty_url = Repository::new("test".to_string(), "".to_string());
+        assert!(empty_url.validate().is_err());
+
+        let invalid_url = Repository::new("test".to_string(), "invalid-url".to_string());
+        assert!(invalid_url.validate().is_err());
     }
 }

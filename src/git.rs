@@ -38,9 +38,6 @@ pub fn clone_repository(repo: &Repository) -> Result<()> {
         return Ok(());
     }
 
-    // Clone the repository using system git
-    logger.info(repo, &format!("Cloning from {}", repo.url));
-
     let mut args = vec!["clone"];
 
     // Add branch flag if a branch is specified
