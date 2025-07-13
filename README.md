@@ -8,9 +8,9 @@ colored output and comprehensive logging.
 
 - **Multi-repository management**: Clone and manage multiple repositories from a single config file
 - **Tag-based filtering**: Run commands on specific repository groups using tags
-- ⚡ **Parallel execution**: Execute commands across repositories simultaneously for faster operations
+- **Parallel execution**: Execute commands across repositories simultaneously for faster operations
 - **Colorized output**: Real-time colored logs with repository identification
-- 📝 **Comprehensive logging**: Per-repository log files for detailed command history
+- **Comprehensive logging**: Per-repository log files for detailed command history
 - **Pull request automation**: Create and manage pull requests across multiple repositories
 - **Enterprise support**: Compatible with GitHub Enterprise and custom SSH configurations
 - **Built in Rust**: Memory-safe, fast, and reliable implementation
