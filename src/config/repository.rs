@@ -87,14 +87,13 @@ impl Repository {
                 }
             }
             None => {
-                // Default path relative to config directory or current directory
-                let default_path = format!("cloned_repos/{}", self.name);
+                // Default to repository name as relative path
                 if let Some(config_dir) = &self.config_dir {
-                    config_dir.join(&default_path).to_string_lossy().to_string()
+                    config_dir.join(&self.name).to_string_lossy().to_string()
                 } else {
                     std::env::current_dir()
                         .unwrap_or_else(|_| PathBuf::from("."))
-                        .join(&default_path)
+                        .join(&self.name)
                         .to_string_lossy()
                         .to_string()
                 }
@@ -152,7 +151,7 @@ mod tests {
         // Test default path when no path is specified
         repo.path = None;
         let target_dir = repo.get_target_dir();
-        assert_eq!(target_dir, "/some/config/dir/cloned_repos/test-repo");
+        assert_eq!(target_dir, "/some/config/dir/test-repo");
     }
 
     #[test]
@@ -211,6 +210,40 @@ mod tests {
         repo.remove_tag("frontend");
         assert!(!repo.has_tag("frontend"));
         assert!(repo.has_tag("backend"));
+    }
+
+    #[test]
+    fn test_default_path_resolution() {
+        // Test repository without explicit path
+        let repo_without_path = Repository::new(
+            "my-repo".to_string(),
+            "git@github.com:owner/my-repo.git".to_string(),
+        );
+
+        // Should default to repository name
+        let target_dir = repo_without_path.get_target_dir();
+        assert!(target_dir.ends_with("my-repo"));
+
+        // Test repository with explicit path
+        let mut repo_with_path = Repository::new(
+            "my-repo".to_string(),
+            "git@github.com:owner/my-repo.git".to_string(),
+        );
+        repo_with_path.path = Some("custom/path".to_string());
+
+        let target_dir_custom = repo_with_path.get_target_dir();
+        assert!(target_dir_custom.ends_with("custom/path"));
+
+        // Test with config directory set
+        let mut repo_with_config_dir = Repository::new(
+            "test-repo".to_string(),
+            "git@github.com:owner/test-repo.git".to_string(),
+        );
+        repo_with_config_dir.set_config_dir(Some(std::path::PathBuf::from("/config/dir")));
+
+        let target_dir_with_config = repo_with_config_dir.get_target_dir();
+        assert!(target_dir_with_config.contains("/config/dir"));
+        assert!(target_dir_with_config.ends_with("test-repo"));
     }
 
     #[test]
