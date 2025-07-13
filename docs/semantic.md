@@ -69,7 +69,7 @@ If you need to create a manual release:
 # Will trigger patch version (e.g., 1.0.0 -> 1.0.1)
 git commit -m "fix: resolve path resolution issue"
 
-# Will trigger minor version (e.g., 1.0.1 -> 1.1.0) 
+# Will trigger minor version (e.g., 1.0.1 -> 1.1.0)
 git commit -m "feat: add support for repository name filtering"
 
 # Will trigger major version (e.g., 1.1.0 -> 2.0.0)

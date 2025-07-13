@@ -16,7 +16,7 @@
 ### Conventional Commits Support
 
 - `feat:` → minor version bump
-- `fix:` → patch version bump  
+- `fix:` → patch version bump
 - `feat!:` or `(MAJOR)` → major version bump
 - Other types (`docs:`, `chore:`, etc.) → patch version bump
 
