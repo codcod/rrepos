@@ -17,10 +17,7 @@ impl Command for RunCommand {
     async fn execute(&self, context: &CommandContext) -> Result<()> {
         let repositories = context
             .config
-            .filter_repositories(
-                context.tag.as_deref(), 
-                context.repos.as_deref()
-            );
+            .filter_repositories(context.tag.as_deref(), context.repos.as_deref());
 
         if repositories.is_empty() {
             let filter_desc = match (&context.tag, &context.repos) {
@@ -42,7 +39,8 @@ impl Command for RunCommand {
                 "Running '{}' in {} repositories...",
                 self.command,
                 repositories.len()
-            ).green()
+            )
+            .green()
         );
 
         let runner = CommandRunner::new();
@@ -69,7 +67,11 @@ impl Command for RunCommand {
                     .run_command(&repo, &self.command, Some(&self.log_dir))
                     .await
                 {
-                    eprintln!("{} | {}", repo.name.cyan().bold(), format!("Error: {e}").red());
+                    eprintln!(
+                        "{} | {}",
+                        repo.name.cyan().bold(),
+                        format!("Error: {e}").red()
+                    );
                 }
             }
         }

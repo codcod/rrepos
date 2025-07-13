@@ -23,10 +23,7 @@ impl Command for PrCommand {
     async fn execute(&self, context: &CommandContext) -> Result<()> {
         let repositories = context
             .config
-            .filter_repositories(
-                context.tag.as_deref(), 
-                context.repos.as_deref()
-            );
+            .filter_repositories(context.tag.as_deref(), context.repos.as_deref());
 
         if repositories.is_empty() {
             let filter_desc = match (&context.tag, &context.repos) {
@@ -47,7 +44,8 @@ impl Command for PrCommand {
             format!(
                 "Checking {} repositories for changes...",
                 repositories.len()
-            ).green()
+            )
+            .green()
         );
 
         let pr_options = PrOptions {
@@ -78,7 +76,11 @@ impl Command for PrCommand {
         } else {
             for repo in repositories {
                 if let Err(e) = github::create_pull_request(&repo, &pr_options).await {
-                    eprintln!("{} | {}", repo.name.cyan().bold(), format!("Error: {e}").red());
+                    eprintln!(
+                        "{} | {}",
+                        repo.name.cyan().bold(),
+                        format!("Error: {e}").red()
+                    );
                 }
             }
         }

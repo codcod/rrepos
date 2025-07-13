@@ -62,14 +62,15 @@ pub async fn create_pull_request(repo: &Repository, options: &PrOptions) -> Resu
 
 async fn create_github_pr(repo: &Repository, branch_name: &str, options: &PrOptions) -> Result<()> {
     let client = GitHubClient::new(Some(options.token.clone()));
-    
+
     // Extract owner and repo name from URL
     let (owner, repo_name) = client.parse_github_url(&repo.url)?;
 
     // Determine base branch
-    let base_branch = options.base_branch.clone().unwrap_or_else(|| {
-        DEFAULT_BASE_BRANCH.to_string()
-    });
+    let base_branch = options
+        .base_branch
+        .clone()
+        .unwrap_or_else(|| DEFAULT_BASE_BRANCH.to_string());
 
     let result = client
         .create_pull_request(PullRequestParams::new(

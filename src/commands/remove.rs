@@ -14,10 +14,7 @@ impl Command for RemoveCommand {
     async fn execute(&self, context: &CommandContext) -> Result<()> {
         let repositories = context
             .config
-            .filter_repositories(
-                context.tag.as_deref(), 
-                context.repos.as_deref()
-            );
+            .filter_repositories(context.tag.as_deref(), context.repos.as_deref());
 
         if repositories.is_empty() {
             let filter_desc = match (&context.tag, &context.repos) {
@@ -41,17 +38,20 @@ impl Command for RemoveCommand {
         if context.parallel {
             let tasks: Vec<_> = repositories
                 .into_iter()
-                .map(|repo| tokio::spawn(async move {
-                    let target_dir = repo.get_target_dir();
-                    tokio::task::spawn_blocking(move || {
-                        if std::path::Path::new(&target_dir).exists() {
-                            fs::remove_dir_all(&target_dir).map_err(anyhow::Error::from)
-                        } else {
-                            println!("{} | Directory does not exist", repo.name.cyan().bold());
-                            Ok(())
-                        }
-                    }).await?
-                }))
+                .map(|repo| {
+                    tokio::spawn(async move {
+                        let target_dir = repo.get_target_dir();
+                        tokio::task::spawn_blocking(move || {
+                            if std::path::Path::new(&target_dir).exists() {
+                                fs::remove_dir_all(&target_dir).map_err(anyhow::Error::from)
+                            } else {
+                                println!("{} | Directory does not exist", repo.name.cyan().bold());
+                                Ok(())
+                            }
+                        })
+                        .await?
+                    })
+                })
                 .collect();
 
             for task in tasks {
@@ -64,7 +64,11 @@ impl Command for RemoveCommand {
                 let target_dir = repo.get_target_dir();
                 if std::path::Path::new(&target_dir).exists() {
                     if let Err(e) = fs::remove_dir_all(&target_dir) {
-                        eprintln!("{} | {}", repo.name.cyan().bold(), format!("Error: {e}").red());
+                        eprintln!(
+                            "{} | {}",
+                            repo.name.cyan().bold(),
+                            format!("Error: {e}").red()
+                        );
                     } else {
                         println!("{} | {}", repo.name.cyan().bold(), "Removed".green());
                     }

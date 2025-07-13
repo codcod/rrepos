@@ -21,10 +21,10 @@ colored output and comprehensive logging.
 - **Add code only when absolutely necessary to fix the specific issue**
 - **When fixing bugs, change only what's broken, not what could be improved**
 
-
 ## Documentation Standards
 
 ### Minimal Documentation Changes
+
 - **Add documentation only when fixing documentation-related issues**
 - **Update only incorrect/outdated information**
 - **Don't add documentation to working undocumented code unless requested**

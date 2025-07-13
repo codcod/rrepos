@@ -1,17 +1,19 @@
-# RRepos - Rust Multi-Repository Management Tool
+# Multi-Repository Management Tool
 
-A Rust translation of the [codcod/repos](https://github.com/codcod/repos) Go application. RRepos is a CLI tool to manage multiple GitHub repositories - clone them, run commands across all repositories, create pull requests, and more—all with colored output and comprehensive logging.
+Repos is a CLI tool to manage multiple GitHub repositories - clone them, run
+commands across all repositories, create pull requests, and more—all with
+colored output and comprehensive logging.
 
 ## Features
 
-- 🚀 **Multi-repository management**: Clone and manage multiple repositories from a single config file
-- 🏷️ **Tag-based filtering**: Run commands on specific repository groups using tags
+- **Multi-repository management**: Clone and manage multiple repositories from a single config file
+- **Tag-based filtering**: Run commands on specific repository groups using tags
 - ⚡ **Parallel execution**: Execute commands across repositories simultaneously for faster operations
-- 🎨 **Colorized output**: Real-time colored logs with repository identification
+- **Colorized output**: Real-time colored logs with repository identification
 - 📝 **Comprehensive logging**: Per-repository log files for detailed command history
-- 🔄 **Pull request automation**: Create and manage pull requests across multiple repositories
-- 🏢 **Enterprise support**: Compatible with GitHub Enterprise and custom SSH configurations
-- 🦀 **Built in Rust**: Memory-safe, fast, and reliable implementation
+- **Pull request automation**: Create and manage pull requests across multiple repositories
+- **Enterprise support**: Compatible with GitHub Enterprise and custom SSH configurations
+- **Built in Rust**: Memory-safe, fast, and reliable implementation
 
 ## Installation
 
@@ -32,22 +34,24 @@ cargo install --path .
 
 ## Configuration
 
-The `config.yaml` file defines which repositories to manage and how to organize them. RRepos supports various Git URL formats including GitHub Enterprise instances.
+The `config.yaml` file defines which repositories to manage and how to organize
+them. RRepos supports various Git URL formats including GitHub Enterprise
+instances.
 
 ```yaml
 repositories:
   - name: loan-pricing
     url: git@github.com:yourorg/loan-pricing.git
     tags: [java, backend]
-    branch: develop                  # Optional: Branch to clone
-    path: cloned_repos/loan-pricing  # Optional: Directory to place cloned repo
+    branch: develop # Optional: Branch to clone
+    path: cloned_repos/loan-pricing # Optional: Directory to place cloned repo
 
   - name: web-ui
     url: git@github.com:yourorg/web-ui.git
     tags: [frontend, react]
     # When branch is not specified, the default branch will be cloned
     # When path is not specified, the current directory will be used
-    
+
   - name: enterprise-repo
     url: git@github-enterprise:company/project.git
     tags: [enterprise, backend]
