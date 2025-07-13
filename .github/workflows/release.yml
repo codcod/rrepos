@@ -91,7 +91,7 @@ jobs:
 
       - name: Update Cargo.toml version
         run: |
-          sed -i 's/^version = ".*"/version = "${{ needs.semantic-version.outputs.version }}"/' Cargo.toml
+          sed -i.bak 's/^version = ".*"/version = "${{ needs.semantic-version.outputs.version }}"/' Cargo.toml && rm Cargo.toml.bak
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add Cargo.toml
