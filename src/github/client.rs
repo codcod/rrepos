@@ -23,17 +23,33 @@ impl GitHubClient {
     }
 
     /// Parse GitHub URL to extract owner and repository name
+    /// Supports both github.com and enterprise GitHub instances
     pub fn parse_github_url(&self, url: &str) -> Result<(String, String)> {
         let url = url.trim_end_matches('/').trim_end_matches(".git");
 
+        // Handle SSH URLs: git@github.com:owner/repo or git@github-enterprise:owner/repo
+        if let Some(captures) = regex::Regex::new(r"git@([^:]+):([^/]+)/(.+)")?.captures(url) {
+            let owner = captures.get(2).unwrap().as_str().to_string();
+            let repo = captures.get(3).unwrap().as_str().to_string();
+            return Ok((owner, repo));
+        }
+
+        // Handle HTTPS URLs: https://github.com/owner/repo or https://github-enterprise/owner/repo
+        if let Some(captures) = regex::Regex::new(r"https://([^/]+)/([^/]+)/(.+)")?.captures(url) {
+            let owner = captures.get(2).unwrap().as_str().to_string();
+            let repo = captures.get(3).unwrap().as_str().to_string();
+            return Ok((owner, repo));
+        }
+
+        // Legacy support for github.com URLs with [:/] pattern
         if let Some(captures) = regex::Regex::new(r"github\.com[:/]([^/]+)/([^/]+)")?.captures(url)
         {
             let owner = captures.get(1).unwrap().as_str().to_string();
             let repo = captures.get(2).unwrap().as_str().to_string();
-            Ok((owner, repo))
-        } else {
-            Err(anyhow::anyhow!("Invalid GitHub URL: {}", url))
+            return Ok((owner, repo));
         }
+
+        Err(anyhow::anyhow!("Invalid GitHub URL: {}", url))
     }
 
     /// Create a pull request
@@ -73,5 +89,68 @@ impl GitHubClient {
             let error_text = response.text().await?;
             Err(anyhow::anyhow!("GitHub API error: {}", error_text))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_github_url_ssh_github_com() {
+        let client = GitHubClient::new(None);
+        let (owner, repo) = client
+            .parse_github_url("git@github.com:owner/repo")
+            .unwrap();
+        assert_eq!(owner, "owner");
+        assert_eq!(repo, "repo");
+    }
+
+    #[test]
+    fn test_parse_github_url_ssh_enterprise() {
+        let client = GitHubClient::new(None);
+        let (owner, repo) = client
+            .parse_github_url("git@github-enterprise:nicos_backbase/journey")
+            .unwrap();
+        assert_eq!(owner, "nicos_backbase");
+        assert_eq!(repo, "journey");
+    }
+
+    #[test]
+    fn test_parse_github_url_https_github_com() {
+        let client = GitHubClient::new(None);
+        let (owner, repo) = client
+            .parse_github_url("https://github.com/owner/repo")
+            .unwrap();
+        assert_eq!(owner, "owner");
+        assert_eq!(repo, "repo");
+    }
+
+    #[test]
+    fn test_parse_github_url_https_enterprise() {
+        let client = GitHubClient::new(None);
+        let (owner, repo) = client
+            .parse_github_url("https://github-enterprise/owner/repo")
+            .unwrap();
+        assert_eq!(owner, "owner");
+        assert_eq!(repo, "repo");
+    }
+
+    #[test]
+    fn test_parse_github_url_with_git_suffix() {
+        let client = GitHubClient::new(None);
+        let (owner, repo) = client
+            .parse_github_url("git@github-enterprise:owner/repo.git")
+            .unwrap();
+        assert_eq!(owner, "owner");
+        assert_eq!(repo, "repo");
+    }
+
+    #[test]
+    fn test_parse_github_url_legacy_format() {
+        let client = GitHubClient::new(None);
+        let (owner, repo) = client.parse_github_url("github.com/owner/repo").unwrap();
+        assert_eq!(owner, "owner");
+        assert_eq!(repo, "repo");
     }
 }
